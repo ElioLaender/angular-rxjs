@@ -1,0 +1,178 @@
+Ao trabalharmos com Observables, podemos partir do princípio que estamos utilizano um cano(pipe). Partindo desse ponto, podemos adicionar tratamentos no fluxo de dados que passar pelo observable, como veremos o uso do operador pipes:
+
+Operadores: Funções responsáveis por manipular o fluxo das informações, sendo chamado também de stream. 
+
+
+observable -> pipe(): Criar um fluxo de tratamento dos dados trafegados.
+
+observable -> map(): Percorre por todos elementos do fluxo
+
+observable -> tap(): Assim como o map, percorre os elementos, porém não altera os dados, usado para verificar os dados que estão passando pelo fluxo. 
+
+observable -> pluck('payload'): Rebebe uma string, contendo o nome do atributo no qual desejamos extrair os dados quando os mesmos estão fora da estrutura desejada, ex:
+payload: [obj1, obj2, obj3] // retornado
+[obj1, obj2, obj3] // desejado. 
+
+observable -> unsubsbribe(): Utilizado para encerrar um dado observable. Para isso, ao criarmos um observable, inserimos o mesmo dentro de um objeto do tipo Observable para poder encerrar com o comando minhaObservable.unsubscribe();
+
+observable -> pipe async '| async': Exemplo
+
+ *ngIf="acoes$ | async as acoes; // O sinal de $ dollar é um convenção para indicar que estamos trabalhando com um observable.
+ 
+ Com o uso do pipe async, temos a vantagem que além da interface ser alimentada de forma automática(sem a necessidade de chamada explicita no onInit por exemplo) e assíncrona, o fluxo de encerrar o observable após o uso já é realizado internamente, sem necessidade de fazer uma chamada conforme o exemplo minhaObservable.unsubscribe();
+ 
+---------------------------------------------------------------------------
+-- Exemplo do ação service antes do uso de pipe async
+---------------------------------------------------------------------------
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { map, tap, pluck } from 'rxjs/operators';
+import { Acao, AcoesAPI } from './modelo/acoes';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AcoesService {
+
+  constructor(private httpClient: HttpClient) { }
+
+  getAcoes() {
+    return this.httpClient.get<AcoesAPI>('http://localhost:3000/acoes')
+      .pipe(
+        tap((valor) => console.log(valor)), // Exibe os valores
+        // map((api) => api.payload), // Extrai o conteúdo a partir do payload.
+        pluck('payload'), // Equivalente a função realizada com o map acima, porém de forma mais elaborada.
+        map((acoes) => 
+          acoes.sort((acaoA, acaoB) => this.ordenaPorCodigo(acaoA, acaoB))
+        )
+      );
+  }
+
+  private ordenaPorCodigo (acaoA: Acao, acaoB: Acao) {
+    
+    if (acaoA.codigo > acaoB.codigo) {
+      return 1;
+    } else if (acaoA.codigo < acaoB.codigo) {
+      return -1;
+    } 
+    
+    return 0;
+  }
+}
+
+---------------------------------------------------------------------------
+-- Chamada do component antes do uso de pipe async
+---------------------------------------------------------------------------
+import { Component, OnInit } from '@angular/core';
+import { FormControl } from '@angular/forms';
+
+import { Acoes } from './modelo/acoes';
+import { AcoesService } from './acoes.service';
+import { Subscription } from 'rxjs';
+
+@Component({
+  selector: 'app-acoes',
+  templateUrl: './acoes.component.html',
+  styleUrls: ['./acoes.component.css'],
+})
+export class AcoesComponent implements OnInit {
+  acoesInput = new FormControl();
+  acoes: Acoes;
+  private subscription: Subscription; // Armazenando a inscrição realizada. Precisamos do acesso apra conseguir encerrar a mesma e evitar uso desnecessário de memória
+
+
+  constructor(private acoesService: AcoesService) {}
+
+  ngOnInit() {
+    this.acoesService.getAcoes().subscribe((acoes) => {
+      this.acoes = acoes;
+    })
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe(); // Encerrando 'observação'
+  }
+}
+
+---------------------------------------------------------------------------
+-- Alterando chamada para fazer o uso de pipe async
+---------------------------------------------------------------------------
+  <div class="td-page-wrapper" *ngIf="acoes$ | async as acoes; else elseBlock">
+    <div class="po-row">
+      <div class="po-md-4" *ngFor="let acao of acoes">
+        <app-card-acoes [acao]="acao"></app-card-acoes>
+      </div>
+    </div>
+  </div>
+---------------------------------------------------------------------------
+-- Alterando a chamadas realizadas no controller simplifica bastante.
+---------------------------------------------------------------------------
+import { Component, OnInit } from '@angular/core';
+import { FormControl } from '@angular/forms';
+
+import { Acoes } from './modelo/acoes';
+import { AcoesService } from './acoes.service';
+import { Subscription } from 'rxjs';
+
+@Component({
+  selector: 'app-acoes',
+  templateUrl: './acoes.component.html',
+  styleUrls: ['./acoes.component.css'],
+})
+export class AcoesComponent implements OnInit {
+  acoesInput = new FormControl();
+  acoes: Acoes;
+  acoes$ = this.acoesService.getAcoes(); // Alimenta a variável acoes$ que será gerenciada pelo uso do pipe async no html
+
+  constructor(private acoesService: AcoesService) {}
+
+  ngOnInit() {}
+}
+---------------------------------------------------------------------------------
+* Aplicação prática Map x Pluck para extrair dados da estrutura de um atributo:
+
+Json de base para o exemplo:
+{
+   "clientes":[
+      {
+         "id":123,
+         "nome":"Gabriel",
+         "estado":"SP"
+      },
+      {
+         "id":125,
+         "nome":"Mario",
+         "estado":"MG"
+      }
+   ],
+   "diaDeProcessamento":”2020-02-02”
+}
+
+clientes$.pipe(map((api)=>api.clientes)) // Retorna apenas o que está dentro do attr clientes
+clientes$.pipe(pluck(‘clientes’)) // O mesmo resultado pode ser obtido com o pluck
+---------------------------------------------------------------------------------
+* O uso de pipe async, faz com que não seja necessário a invocação explicita dos métodos subscribe e unsubscribe dos observables. 
+---------------------------------------------------------------------------------
+* O tap é bastante útil para debugar os dados que estão passando pelo fluxo, sendo possível fazer uma chamado a cada alteração no fluxo para saber como as alterações estão se comportando. 
+---------------------------------------------------------------------------------
+* Resumo operadores de transformação:
+
+- O Observable possui diversos operadores para tranformação de dados, vimos alguns tais como o tap(), map() e a aplicação do pipe async. 
+---------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

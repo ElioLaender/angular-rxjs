@@ -1,0 +1,30 @@
+Observables:
+
+- Ao trabalharmos com requisiçoes, é interessante seguir o padrão de criar interfaces para tipar os objetos retornados, de fora a saber como será o objeto e quais os tipos de atributos. Facilitando também na parte de autocompletes. 
+
+Quando lidamos com observables, nós nos inscrevemos em determinada ação e reagimos a ela quando o retorno for efetivado, ex:
+
+ // Retorna um observable
+ getAcoes() {
+    return this.httpClient.get<any>('http://localhost:3000/acoes');
+ }
+ 
+ // Se inscreve e passa escutar retornos
+ this.acoesService.getAcoes().subscribe((retornoApi) => {
+      this.acoes = retornoApi.payload; // Ação reativa
+ })
+
+
+* Sobre o uso de observables:
+
+- Toda operação que pode ser feita com promises, pode também ser feita com observables. Com o uso de Observables, é possível realizar todas as ações fornecidas pelas promisses, porém observable nos fornece mais funcionalidades. 
+
+- Com observable é possível representar um único elemento ou uma coleção de elementos, enquanto promises representam apenas um elemento. No Angular, é comum o uso de observables para lidar com requisições http, porém o mesmo pode ser utilizado para lidar com eventos diversos, tais como click e digitação. 
+- O observable é um tipo de objeto que representa um fluxo de informações no tempo, como, por exemplo, os eventos de digitação de um campo. O observable pode representar eventos de interface e podem também ser utilizados no backend. 
+
+** Pesquisar mais sobre diferenças entre promisse e observables.
+
+Resumo:
+
+- É importante a criação de interfaces para tipar os retornos de requisições http
+- Separação de serviço para criar requisições no servidor. 
