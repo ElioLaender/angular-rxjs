@@ -147,7 +147,7 @@ Json de base para o exemplo:
    ],
    "diaDeProcessamento":”2020-02-02”
 }
-
+  
 clientes$.pipe(map((api)=>api.clientes)) // Retorna apenas o que está dentro do attr clientes
 clientes$.pipe(pluck(‘clientes’)) // O mesmo resultado pode ser obtido com o pluck
 ---------------------------------------------------------------------------------

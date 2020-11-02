@@ -1,0 +1,53 @@
+Com o RxJS, também é possível realizar operações de filtro. Quando trabalhamos com filtros, os dados do fluxo passa pela implementação do filtro, caso a expressão informada no mesmo seja falsa, o fluxo é abortado. 
+
+
+Observables -> filter(): Avalia os dados de acordo com uma expressão pré-definida e só dá continuidade no fluxo caso o dado verificado atenda os requisitos. 
+
+Observables -> debounceTime(): Também funciona como uma espécie de filtro, "segurando" tudo o que passe pelo fluxo em um intervalo de tempo pré-definido entre a ação e o tempo em milisegundos especificado.
+
+Observables -> distinctUntilChanged(): Utilizado para desconsiderar o andamento do fluxo caso os dados forem identidos as chamadas anteriores. Atenção, só é considerado o valor imediatamente anterior.   
+
+---------------------------------------------------------------------------
+-- Exemplo do componente utilizando as funções filter, debounceTime e distinctUntilChanged.  
+---------------------------------------------------------------------------
+import { Component, OnInit } from '@angular/core';
+import { FormControl } from '@angular/forms';
+
+import { AcoesService } from './acoes.service';
+import { debounceTime, distinctUntilChanged, filter, switchMap, tap } from 'rxjs/operators';
+import { merge } from 'rxjs';
+
+const INTERVALO_DIGITACAO = 300;
+@Component({
+  selector: 'app-acoes',
+  templateUrl: './acoes.component.html',
+  styleUrls: ['./acoes.component.css'],
+})
+export class AcoesComponent implements OnInit {
+  acoesInput = new FormControl();
+  todasAcoes$ = this.acoesService.getAcoes()
+    .pipe(
+      tap(() => console.log('Fluxo requisição')) // printar o resultado
+    ); 
+
+  filtroPeloInput$ = this.acoesInput.valueChanges // Está sendo capturado o observable cadastrado no formControl e realizado tratamento passando pelo pipe
+    .pipe(
+      debounceTime(INTERVALO_DIGITACAO), // Segura o andamento do fluxo de acordo com o intervalo em milisegundos
+      tap(() => console.log('Fluxo de filtro')),
+      filter((valorDigitado) => valorDigitado.length >= 3 || !valorDigitado.length), // Com o uso de filter, o fluxo só é levado adiante se o retorno da expressão for verdadeiro.
+      distinctUntilChanged(), // Desonsidera caso os dados do fluxo sejam identicos ao estado anterior, evitando trabalho desnecessário (Interessante entrar depois do tratamento de dados/fltros e antes da requisição)
+      switchMap(valorDigitado => this.acoesService.getAcoes(valorDigitado)) // Realizado tratamento para fazer chamadas conforme o valor for sendo alterado.
+    )
+  acoes$ = merge(this.todasAcoes$, this.filtroPeloInput$) // Primeiro fluxo é responsável pelo carregamento inicial e o segundo por manter o evento de filtro
+
+  constructor(private acoesService: AcoesService) {}
+
+  ngOnInit() {}
+}
+---------------------------------------------------------------------------
+Resumo:
+
+- Uso do operador filter, para que o fluxo possa seguir apenas quando atender uma determinada condição.
+- Utilizado o operador debounce time, que cria um delay no fluxo, evitando assim múltiplas requisições em um curto espaço de tempo
+- Demonstrado o uso do operador distinctUntilChanged, que bloqueia o fluxo caso os dados forem identicos ao ultimo fluxo executado. 
+---------------------------------------------------------------------------

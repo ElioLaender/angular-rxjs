@@ -1,0 +1,69 @@
+Capturando eventos do input:
+
+Quando instanciamos um FormControl, passamos a ter acesso a um observable, a partir deste observable, temos acesso ao fluxo de dados extraídos de eventos. Veremos um exemplo onde é capturado dados a partir de um valueChanges e realizado operações de fluxo através do pipe e suas funções. 
+
+Observables -> switchMap(): Redireciona um fluxo de dados para outro fluxo, exemplo um fluxo de captura de dados para um fluxo de requisição. 
+
+RXJS -> merge(): Adiciona dois ou mais fluxos de observable em apenas um fluxo.
+
+--------------------------------------------------------------------
+-- Lógica do componente ajustada para tratar o fluxo de dados antes de efetivar a requisição.
+--------------------------------------------------------------------
+import { Component, OnInit } from '@angular/core';
+import { FormControl } from '@angular/forms';
+
+import { AcoesService } from './acoes.service';
+import { switchMap, tap } from 'rxjs/operators';
+import { merge } from 'rxjs';
+
+@Component({
+  selector: 'app-acoes',
+  templateUrl: './acoes.component.html',
+  styleUrls: ['./acoes.component.css'],
+})
+export class AcoesComponent implements OnInit {
+  acoesInput = new FormControl();
+  todasAcoes$ = this.acoesService.getAcoes()
+    .pipe(
+      tap(() => console.log('Fluxo requisição')) // printar o resultado
+    ); 
+  filtroPeloInput$ = this.acoesInput.valueChanges // Está sendo capturado o observable cadastrado no formControl e realizado tratamento passando pelo pipe
+    .pipe(
+      switchMap(valorDigitado => this.acoesService.getAcoes(valorDigitado)), // Realizado tratamento para fazer chamadas conforme o valor for sendo alterado.
+      tap(() => console.log('Fluxo de filtro'))
+    )
+  acoes$ = merge(this.todasAcoes$, this.filtroPeloInput$) // Primeiro fluxo é responsável pelo carregamento inicial e o segundo por manter o evento de filtro
+
+  constructor(private acoesService: AcoesService) {}
+
+  ngOnInit() {}
+}
+
+--------------------------------------------------------------------
+-- Serviço ajustado para receber parâmetros na requisição.
+--------------------------------------------------------------------
+ getAcoes(valor?: string) {
+    const params = valor ? new HttpParams().append('valor', valor) : undefined;
+    return this.httpClient.get<AcoesAPI>('http://localhost:3000/acoes', { params })
+      .pipe(
+        tap((valor) => console.log(valor)), // Exibe os valores
+        // map((api) => api.payload), // Extrai o conteúdo a partir do payload.
+        pluck('payload'), // Equivalente a função realizada com o map acima, porém de forma mais elaborada.
+        map((acoes) => 
+          acoes.sort((acaoA, acaoB) => this.ordenaPorCodigo(acaoA, acaoB))
+        )
+      );
+  }
+--------------------------------------------------------------------
+-- Exemplo de consulta em duas APIs distintas para retornar um produto e os respectivos detalhes
+--------------------------------------------------------------------
+produtos$.pipe(switchMap((produto)=>this.buscaDetalhesProduto(produto.id)))
+
+Com o uso do operador switchMap, é possível manipular o fluxo, sendo passado o resultado da busba pelo produto para o fluxo responsável por retornar os detalhes do produto.
+--------------------------------------------------------------------
+Resumo:
+
+- É possível escutar e manipular eventos do FormControl através do uso de RxJS
+- Uso prático do switchMap, para que seja possível direcionar o fluxo de captura da digitação para o fluxo de requisição na API. 
+- Realizar a junção de fluxos através da função merge do RxJS
+--------------------------------------------------------------------
